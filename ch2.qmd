@@ -1,0 +1,492 @@
+# Kapitola 2: Malé a velké světy
+
+> Chapter 2: Small worlds and Large worlds
+
+```{r }
+#| warning: false
+#| message: false
+
+library(dplyr)
+library(ggplot2)
+library(gt)
+library(patchwork)
+```
+
+## Lehké úkoly
+
+### 2E1
+
+1) Pravděpodobnost že prší
+2) Pravděpodobnost že prší, jestliže je pondělí.
+3) Pravděpodobnost že je pondělí, jestliže prší.
+4) Pravděpodobnost že prší, jestliže je pondělí *(pomocí Bayesovy věty)*.
+
+::: {.callout-tip}
+## Výsledek
+
+Správně je 2 a 4.
+:::
+
+### 2E2
+
+1) $P(\text{Rain} \cap \text{Monday})$
+2) $P(\text{Rain} | \text{Monday})$
+3) $P(\text{Monday} | \text{Rain})$
+4) $P(\text{Rain} \cap \text{Monday})$
+
+::: {.callout-tip}
+## Výsledek
+
+Správně je 3.
+:::
+
+### 2E3
+
+1) Pravděpodobnost že je pondělí, jestliže prší.
+2) Pravděpodobnost že prší, jestliže je pondělí.
+3) Pravděpodobnost že prší a je pondělí.
+4) Pravděpodobnost že je pondělí, jestliže prší.
+5) Pravděpodobnost že prší, jestliže je pondělí.
+
+::: {.callout-tip}
+## Výsledek
+
+Správně je 1 a 4.
+:::
+
+### 2E4
+
+???
+
+## Průměrné úkoly
+
+### 2M1
+
+```{r }
+#| fig.height: 9
+
+A <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = (1 - 0)/1,
+  # Binomial likelihood
+  likelihood = dbinom(3, 3, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |> 
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(p | x)"
+  )
+
+B <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = (1 - 0)/1,
+  # Binomial likelihood
+  likelihood = dbinom(3, 4, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |> 
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W, L",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(p | x)"
+  )
+
+C <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = (1 - 0)/1,
+  # Binomial likelihood
+  likelihood = dbinom(5, 7, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |>  
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W, L",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(W | x)"
+  )
+
+A / B / C
+```
+
+### 2M2
+
+```{r }
+#| fig.height: 9
+A <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = ifelse(p < 0.5, 0, p),
+  # Binomial likelihood
+  likelihood = dbinom(3, 3, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |> 
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(p | x)"
+  )
+  
+B <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = ifelse(p < 0.5, 0, p),
+  # Binomial likelihood
+  likelihood = dbinom(3, 4, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |> 
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W, L",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(p | x)"
+  )
+  
+C <- tibble(
+  p = seq(0, 1, by = 0.001),
+  # Uniform prior
+  prior = ifelse(p < 0.5, 0, p),
+  # Binomial likelihood
+  likelihood = dbinom(5, 7, prob = p),
+  # Posterior
+  posterior = prior * likelihood / sum(likelihood)
+) |>  
+  ggplot() +
+  geom_line(aes(x = p, y = posterior)) +
+  theme_bw() +
+  labs(
+    title = "Případ: W, W, W, L",
+    subtitle = "Proporce vody W",
+    x = "p", y = "P(p | x)"
+  )
+  
+A / B / C
+```
+
+### 2M3
+
+Základní pravděpodobnosti ze zadání:
+
+$$
+\begin{align}
+P(W | \text{Earth}) &= 0.7     \\
+P(L | \text{Earth}) &= 0.3     \\
+P(W | \text{Mars}) &= 0        \\
+P(L | \text{Mars}) &= 1        \\
+P(\text{Earth}) &= P(\text{Mars}) = {1 \over 2} \\
+\end{align}
+$$
+
+Bayesovo pravidlo:
+
+$$
+P(\text{Earth} | L) =
+\frac{P(\text{Earth})P(L|\text{Earth})}{P(L)} =
+\frac{P(\text{Earth})P(L|\text{Earth})}{
+P(L | \text{Earth})P(\text{Earth}) + P(L | \text{Mars})P(\text{Mars}) 
+} \approx 0.23
+$$
+
+### 2M4
+
+#### Počítání
+
+```{r }
+tibble(
+  Card = rep(1:3, each = 2),
+  Front = c("B", "W", "W", "W", "B", "B"),
+  Back  = c("W", "B", "W", "W", "B", "B")
+) |> 
+  gt() |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "black"),
+      cell_text(color = "black")
+    ),
+    values = "B"
+  ) |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "white"),
+      cell_text(color = "white")
+    ),
+    values = "W"
+  ) |> 
+  opt_row_striping(FALSE)
+```
+
+
+#### Bayesova tabulka
+
+```{r }
+tibble(
+  Card = c("W/W", "B/W", "B/B"),
+  LikB = c(0, 1, 2),
+  Prior = c(1, 1, 1),
+  UnnormalizedPosterior = LikB * Prior,
+  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
+) |> 
+  gt() |> 
+  fmt_fraction(columns = Posterior) |> 
+  tab_style(
+    location = cells_body(rows = 3),
+    style = cell_fill(color = "grey80")
+  )
+```
+
+### 2M5
+
+#### Počítání
+
+```{r }
+tibble(
+  Card = rep(1:4, each = 2),
+  Front = c("B", "W", "W", "W", "B", "B", "B", "B"),
+  Back  = c("W", "B", "W", "W", "B", "B", "B", "B")
+) |> 
+  gt() |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "black"),
+      cell_text(color = "black")
+    ),
+    values = "B"
+  ) |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "white"),
+      cell_text(color = "white")
+    ),
+    values = "W"
+  ) |> 
+  opt_row_striping(FALSE)
+```
+
+#### Bayesova tabulka
+
+```{r }
+tibble(
+  Card = c("W/W", "B/W", "B/B", "B/B"),
+  LikB = c(0, 1, 2, 2),
+  Prior = c(1, 1, 1, 1),
+  UnnormalizedPosterior = LikB * Prior,
+  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
+) |> 
+  gt() |> 
+  fmt_fraction(columns = Posterior) |> 
+  tab_style(
+    location = cells_body(rows = 3:4),
+    style = cell_fill(color = "grey80")
+  )
+```
+
+### 2M6
+
+#### Bayesova tabulka
+
+```{r }
+tibble(
+  Card = c("W/W", "B/W", "B/B"),
+  LikB = c(0, 1, 2),
+  Prior = c(3/6, 2/6, 1/6),
+  UnnormalizedPosterior = LikB * Prior,
+  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
+) |> 
+  gt() |> 
+  fmt_fraction(columns = 3:5) |> 
+  tab_style(
+    location = cells_body(rows = 3),
+    style = cell_fill(color = "grey80")
+  )
+```
+
+### 2M7
+
+#### Počítání
+
+```{r }
+tibble(
+  Front1 = c(
+    rep("W", times = 2),
+    rep("W", times = 3),
+    rep("W", times = 3)
+  ),
+  Back1  = c(
+    rep("B", times = 2),
+    rep("W", times = 3),
+    rep("W", times = 3)
+  ),
+  Front2 = c(
+    rep("B", times = 2),
+    rep("B", times = 3),
+    rep("B", times = 3)
+  ),
+  Back2 = c(
+    rep("B", times = 2),
+    c("W", rep("B", times = 2)),
+    c("W", rep("B", times = 2))
+  )
+) |> 
+  gt() |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "black"),
+      cell_text(color = "black")
+    ),
+    values = "B"
+  ) |> 
+  tab_style_body(
+    style = list(
+      cell_fill(color = "white"),
+      cell_text(color = "white")
+    ),
+    values = "W"
+  ) |> 
+  opt_row_striping(FALSE)
+```
+
+#### Bayesova tabulka
+
+```{r }
+tibble(
+  Card = c("WBBB", "WWBW", "WWBB"),
+  LikB = c(2, 2, 4),
+  Prior = c(1, 1, 1),
+  UnnormalizedPosterior = LikB * Prior,
+  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
+) |> 
+  gt() |> 
+  fmt_fraction(columns = 3:5) |> 
+  tab_style(
+    location = cells_body(rows = c(1, 3)),
+    style = cell_fill(color = "grey80")
+  )
+```
+
+## Těžké úkoly
+
+### 2H1
+
+#### Počítání
+
+```{r }
+tibble(
+  Specimen = c("A (T/S)", "A (T/T)", "B (T/S)", "B (T/T"),
+  Likelihood = c(0.1*0.9, 0.1^2, 0.2*0.8, 0.2^2),
+  Prior = c(1, 1, 1, 1),
+  UnnormalizedPosterior = Likelihood * Prior,
+  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
+) |> 
+  gt() |> 
+  tab_style(
+    location = cells_body(rows = c(2, 4)),
+    style = cell_fill(color = "grey80")
+  )
+```
+
+#### Bayesova tabulka
+
+Jaká je pravděpodobnost, že se narodí dvojčata po dvojčatech?
+
+$$
+P(T_2|T_1) = \frac{P(T_2 \cap T_1)}{P(T_1)}
+$$
+
+Pomocí zákona o celkové pravděpodobnosti.
+
+$$
+P(T_1) =
+P(T|S_A)P(S_A) + P(T|S_B)P(S_B) =
+{1\over10}{1\over2} + {2\over10}{1\over2} = 
+{3\over20}
+$$
+
+Pomocí zákona o celkové pravděpodobnosti.
+
+$$
+P(T_1 \cap T_2) =
+P(T_1 \cap T_2|S_A)P(S_A) + P(T_1 \cap T_2|S_B)P(S_B) =
+{1\over10}{1\over10}{1\over2} + {2\over10}{2\over10}{1\over2} = 
+{1\over40}
+$$
+
+Výsledek
+
+$$
+P(T_2|T_1) = \frac{1\over40}{3\over20} = 1/6 \approx 0.167
+$$
+
+### 2H2
+
+#### Bayesovo pravidlo
+
+$$
+P(S_A | T) = 
+\frac{P(S_A)P(T|S_A)}{P(T)} = 
+\frac{{1\over2}{1\over10}}{3\over20} =
+{1\over3}
+$$
+
+### 2H3
+
+#### Bayesovo pravidlo
+
+$$
+P(S_A | \{T, S\}) = \frac{
+  P(S_A)P(\{T, S\}|S_A)
+}{P(\{T, S\})} = 
+\frac{{1\over2}{1\over10}{9\over10}}{
+  {1\over2}{1\over10}{9\over10} + {1\over2}{2\over10}{8\over10}
+} = {9\over25} = 0.36
+$$
+
+### 2H4
+
+#### Bayesovo pravidlo
+
+Když nemáme žádnou informaci o porodech a spoléháme pouze na test.
+
+$$
+P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T|S_A)} = 
+\frac{{1\over2}{8\over10}}{
+  {1\over2}{8\over10} + {1\over2}{35\over100}
+} = 
+\frac{{8\over20}}{
+  {80\over200} + {35\over200}
+} = 
+{80\over115} \approx 0.696
+$$
+
+Dostali jsme novou informaci o narození dvojčat a poté jedné pandy. Výpočet bude
+identický, akorát lze použít předchozí informace o a aktualizovat pravděpodobnost 
+pandy typu A za předpoklady $P(S_A|\{T, S\}) = 9/25$.
+
+$$
+P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T|S_A)} = 
+\frac{{9\over25}{8\over10}}{
+  {9\over25}{8\over10} + {16\over25}{35\over100}
+} = 
+\frac{{720\over2500}}{
+  {720\over2500} + {5600\over2500}
+} = {9\over16} = 0.5625
+$$

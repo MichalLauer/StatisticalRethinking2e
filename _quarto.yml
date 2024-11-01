@@ -1,0 +1,19 @@
+project:
+  type: book
+
+book:
+  title: "Statistical Rethinking"
+  author: "Michal Lauer"
+  date: today
+  chapters:
+    - index.qmd
+    - ch2.qmd
+    - ch3.qmd
+
+format:
+  html:
+    theme: cosmo
+    number-sections: false
+    code-fold: show
+  pdf:
+    documentclass: scrreprt
