@@ -2,4 +2,5 @@
 
 
 https://xcelab.net/rmpubs/rethinking/rethinking_solutions_2.pdf
+
 https://sr2-solutions.wjakethompson.com/bayesian-inference

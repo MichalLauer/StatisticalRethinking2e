@@ -1,0 +1,356 @@
+# Kapitola 4: Geocentrické modely
+
+> Chapter 4: Geocentric models
+
+
+```{r }
+library(ggplot2)
+library(latex2exp)
+library(patchwork)
+library(tibble)
+library(gt)
+library(splines)
+library(dplyr)
+```
+
+## Lehké úkoly
+
+### 4E1
+
+$y_i \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost dat
+
+$\mu \sim \text{Normal}(0, 10)$ - Apriorní rozdělení
+
+$\sigma \sim E(1)$ - Apriorní rozdělení
+
+### 4E2
+
+Jsou tam pouze dva parametry, $\mu$ a $\sigma$.
+
+### 4E3
+
+$$
+P(\mu,\sigma|y) = \frac{
+  P(\mu, \sigma)P(y | \mu, \sigma)
+}{
+  P(y)
+} = \frac{
+  P(\mu)P(\sigma)P(y | \mu, \sigma)
+}{
+  \int\int P(\mu)P(\sigma)P(y | \mu, \sigma) d\sigma d\mu
+} = \frac{
+  N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1)N(y|\mu, \sigma)
+}{
+  \int\int N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1)N(y|\mu, \sigma) d\sigma d\mu
+}
+$$
+
+### 4E4
+
+$y_i \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost
+
+$\mu_i = \alpha + \beta x_i$ - Lineární model
+
+$\alpha \sim \text{Normal}(0, 10)$ - Apriorní rozdělení
+
+$\beta \sim \text{Normal}(0, 1)$ - Apriorní rozdělení
+
+$\sigma \sim E(2)$ - Apriorní rozdělení
+
+### 4E5
+
+V posteriorním rozdělení jsou tři parametry, $\sigma$, $\alpha$ a 
+$\beta$. Jelikož je $\mu$ definováno deterministicky ostatními parametry,
+nejedná se o parametr. To je naznačené i použitím $=$ místo $\sim$.
+
+## Průměrné úkoly
+
+### 4M1
+
+```{r }
+set.seed(421)
+n <- 3e4
+mu <- rnorm(n, mean = 0, sd = 10)
+sigma <- rexp(n, rate = 1)
+y <- rnorm(n, mean = mu, sd = sigma)
+
+g1 <- 
+  ggplot() +
+  geom_density(aes(x = mu)) +
+  theme_bw() +
+  labs(title = TeX(r"(Apriorní rozdělení pro parametr $\mu$)"),
+       x = TeX(r"($\mu$)"), y = TeX(r"($P(\mu)$)"))
+
+g2 <- 
+  ggplot() +
+  geom_density(aes(x = sigma)) +
+  theme_bw() +
+  labs(title = TeX(r"(Apriorní rozdělení pro parametr $\sigma$)"),
+       x = TeX(r"($\sigma$)"), y = TeX(r"($P(\sigma)$)"))
+
+g3 <- 
+  ggplot() +
+  geom_density(aes(x = y)) +
+  theme_bw() +
+  labs(title = TeX(r"(Apriorní rozdělení pro parametr $y$)"),
+       x = TeX(r"($y$)"), y = TeX(r"($P(y)$)"))
+
+g3 + g1 / g2
+```
+
+### 4M2
+
+```{r }
+m42 <- alist(
+  # Prior
+  mu ~ dnorm(mean = 0, sd = 10),
+  sigma ~ dexp(rate = 1),
+  # Likelihood
+  y ~ dnorm(mean = mu, sd = sigma)
+)
+```
+
+### 4M3
+
+$y \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost dat
+
+$\mu = \alpha + \beta x$ - Lineární model
+
+$\alpha \sim \text{Normal}(0, 10)$ - Apriorní rozdělení
+
+$\beta \sim U(0, 1)$ - Apriorní rozdělení
+
+$\sigma \sim E(1)$ - Apriorní rozdělení
+
+### 4M4
+
+Pro apriorní rozdělení jsou použity informace z [@Lukasova1930_Archy]. Data
+jsou nejspíše už málo relevantní, ale na ukázku postačující. Modelové zadání
+bude předpokládat chlapce měřené v prvních třech letech, tedy `11-12`, `12-13` a
+`13-14`.
+
+$y \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost dat
+
+:::{.callout-tip title="Odůvodnění"}
+Výška je přirozený proces a lze si ho představit jako součet přírůstků od
+narození. Proto je rozumné předpokládat, že bude normálně rozdělená.
+:::
+
+$\mu = \alpha + \beta (x - \min x)$ - Vycentrovaný lineární model
+
+:::{.callout-tip title="Odůvodnění"}
+Střední hodnota výšky ($\mu$) lze popsat lineárním vztahem mezi výškou ($y$) a
+rokem ($x$) měření. Roky jsou vycentrované ($x - \min x$) tak, aby $\alpha$
+představovala průměrnou výšku v prvním roce. Přírůstek s každým rokem je
+popsán parametrem $\beta$.
+:::
+
+$\alpha \sim \text{Normal}(143, 10)$ - Apriorní rozdělení
+
+:::{.callout-tip title="Odůvodnění"}
+Parametr $\alpha$ popisuje průměrný věk v prvním roce měření. [@Lukasova1930_Archy]
+zjistila, že průměrná výška chlapců je 143 se směrodatnou odchylkou 5 cm.
+Aby bylo respektováno to, že data nejsou nejnovější, je nejistota zdvojnásobena
+a je použito $\sigma = 10$.
+:::
+
+$\beta \sim \chi^2(5)$ - Apriorní rozdělení
+
+:::{.callout-tip title="Odůvodnění"}
+Z [@Lukasova1930_Archy] lze odhadnout, že v prvních třech letech byl přírůstek 
+mezi roky zhruba 6 cm. Přírůstek nemůže být negativní (žáci o rok starší
+nebudou měřit v průměru méně) a proto je zvoleno $\chi^2$ rozdělení s $5$ti
+stupni volnosti, což pokrývá zjištěná data.
+:::
+
+$\sigma \sim E(0.5)$ - Apriorní rozdělení
+
+:::{.callout-tip title="Odůvodnění"}
+O nejistotě výšek jako takových není v ve výzkumu zmínka. Je rozumné ale 
+předpokládat, že mezi dětmi bude vysoká variabilita, jelikož jsou ještě ve
+vývinu. Proto je zvoleno rozdělení, které pokrývá velké množství hodnot.
+:::
+
+### 4M5
+
+Jelikož je tato informace reflektovaná ve striktně pozitivním apriorním
+rozdělení pro $\beta$, nic se nemění.
+
+### 4M6
+
+V případě zvoleného apriorního rozdělení pro $\sigma$ je 
+$P(\sigma > 8) = 0.0183$ a nabízejí se tři možnosti:
+
+1) Změnit parametr apriorního rozdělení tak, aby $P(\sigma > 8)$ byla velmi
+nízká. V Případě exponenciálního rozdělení nebude nikdy přesně nulová, ale
+může se stát zanedbatelnou.
+2) Ponechat apriorní rozdělení takové a useknout ho tak, že
+$P(\sigma|\sigma > 8) = 0$.
+3) Zvolit jiné rozdělení, například $U(0, 8)$.
+
+### 4M7
+
+Vytvoření dat:
+
+```{r }
+data(Howell1, package = "rethinking")
+d2 <- Howell1[Howell1$age >= 18, ]
+```
+
+Originální model:
+
+```{r }
+m4.3 <- alist(
+  height ~ dnorm(mu, sigma),
+  mu <- a + b*(weight - mean(weight)),
+  a ~ dnorm(178, 20),
+  b ~ dlnorm(0, 1),
+  sigma ~ dunif(0, 50)
+)
+
+set.seed(4271)
+m471 <- rethinking::quap(
+  flist = m4.3,
+  data = d2
+)
+```
+
+Model bez centrování:
+
+```{r }
+m4.3b <- alist(
+  height ~ dnorm(mu, sigma),
+  mu <- a + b*weight,
+  a ~ dnorm(178, 20),
+  b ~ dlnorm(0, 1),
+  sigma ~ dunif(0, 50)
+)
+
+set.seed(4272)
+m472 <- rethinking::quap(
+  flist = m4.3b,
+  data = d2
+)
+```
+
+Porovnání posteriorních rozdělení:
+
+```{r }
+set.seed(4711)
+postA <- rethinking::extract.samples(m471)
+set.seed(4722)
+postB <- rethinking::extract.samples(m472)
+
+plot_post <- function(x, parameter) {
+  ggplot() +
+    geom_density(aes(x = x)) +
+    theme_bw() +
+    labs(x = TeX(parameter),
+         y = TeX(paste0("P(", parameter, ")")))
+}
+
+(
+  plot_post(postA$a, r"($\alpha$)") +
+  plot_post(postA$b, r"($\beta$)") +
+  plot_post(postA$sigma, r"($\sigma$)")
+  
+) /
+(
+  plot_post(postB$a, r"($\alpha$)") +
+  plot_post(postB$b, r"($\beta$)") +
+  plot_post(postB$sigma, r"($\sigma$)")
+)
+```
+
+:::{.callout-tip title="Interpretace"}
+Posteriorní rozdělení pro parametr $\beta$ je prakticky identické a mezi
+modely se neliší. To dává smysl, vzhledem k tomu, že koeficient má stejnou
+interpretaci v obou modelech.
+
+Pro parametr $\alpha$ je interpretace odlišná. V modelech v prvním řádku
+(vycentrovaná váha) parametr reprezentuje průměrnou výšku pro průměrnou váhu,
+zatímco v druhém řádku (nevycentrovaná váha) reprezentuje průměrnou výšku pro
+nulovou váhu (což prakticky nedává smysl).
+
+Z grafu to vypadá, že je parametr $\sigma$ pro necentrovaný model nepatrně
+vyšší.
+:::
+
+```{r }
+#| fig.height: 1.6
+#| fig.width: 5.5
+#| fig.align: center
+cov_mx <- function(x, h) {
+  x |> 
+    cov() |> 
+    as_tibble(rownames = "var") |> 
+    gt() |> 
+    fmt_number(decimals = 4) |> 
+    tab_header(h) |> 
+    wrap_table()
+}
+
+cov_mx(postA, h = "Vycentrovaný model") +
+  cov_mx(postB, h = "Nevycentrovaný model")
+```
+
+:::{.callout-tip title="Interpretace"}
+Rozptyl parametrů $\beta$ a $\sigma$ je v obou modelech velmi podobný. 
+Kovariance mezi $\beta$ a $\sigma$ je také prakticky identická. Co je ale 
+výrazně horší pro nevycentrovaný model jsou vlastnosti parametru $\alpha$.
+Ten má jak vyšší rozptyl, tak vyšší kovariance s oběma parametry. To také
+může být důvodem, proč se zdá posteriorní rozdělení parametru $\sigma$
+větší.
+:::
+
+### 4M8
+
+
+```{r }
+num_knots <- 15
+data(cherry_blossoms, package = "rethinking")
+d3 <- cherry_blossoms[complete.cases(cherry_blossoms$doy), ]
+knot_list <- quantile(d3$year, probs = seq(0, 1, length.out = num_knots))
+B <- bs(d3$year,
+        knots = knot_list[-c(1, knot_list)],
+        degree = 3,
+        intercept = TRUE)
+
+set.seed(4271)
+m47 <- rethinking::quap(
+  flist = alist(
+    D ~ dnorm(mu, sigma),
+    mu <- a + B %*% w,
+    a ~ dnorm(100, 10),
+    w ~ dnorm(0, 10),
+    sigma ~ dexp(1)
+  ),
+  data = list(
+    D = d3$doy,
+    B = B
+  ),
+  start = list(
+    w = rep(0, length = ncol(B))
+  )
+)
+
+set.seed(4272)
+m47s <- rethinking::extract.samples(m47)
+
+# bind_cols(
+#   a = m47s$a,
+#   as_tibble(m47s$w, .name_repair = \(x) paste0("b", seq_along(x))),
+#   sigma = m47s$sigma
+# ) |> 
+#   mutate(mu = a  + )
+
+tibble(
+  a = m47s$a,
+  bw = B %*% m47s$w,
+  sigma = m47s$sigma
+) |> 
+  mutate(mu = a  + )
+```
+
+
+# Reference

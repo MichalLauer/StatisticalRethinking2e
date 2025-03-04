@@ -1,5 +1,8 @@
 project:
   type: book
+  preview:
+    port: 1234
+    browser: false
 
 book:
   title: "Statistical Rethinking"
@@ -7,13 +10,13 @@ book:
   date: today
   chapters:
     - index.qmd
-    - ch2.qmd
-    - ch3.qmd
+    - ch02.qmd
+    - ch03.qmd
+    - ch04.qmd
 
 format:
   html:
     theme: cosmo
     number-sections: false
     code-fold: show
-  pdf:
-    documentclass: scrreprt
+    bibliography: literature.bib
