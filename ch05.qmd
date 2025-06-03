@@ -1,0 +1,25 @@
+# Kapitola 5: Mnoho proměnných a falešné vafle
+
+> Chapter 5: The Many Variables & The Spurious Waffles
+
+## Lehké úkoly
+
+### 5E1
+
+$\mu_i = \alpha + \beta x_i$ - jednoduchý lineární model
+
+$\mu_i = \beta_x x_i + \beta_z z_i$ - vícerozměrný lineární model
+
+$\mu_i = \alpha + \beta(x_i - z_i)$ - jednoduchý lineární model
+
+$\mu_i = \alpha + \beta_x x_i + \beta_z z_i$ - vícerozměrný lineární model
+
+### 5E2
+
+$\text{anim_div_i} = \alpha + \beta_l \text{lat}_i + \beta_d \text{plant_div}_i$
+
+### 5E3
+
+$\text{ttphd}_i = \alpha + \beta_f \text{fund}_i + \beta_l + \text{lab}$
+
+$\beta_f > 0 ; \space \beta_l > 0$

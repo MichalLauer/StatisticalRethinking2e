@@ -87,7 +87,7 @@ e35
 ```
 
 :::{.callout-tip title="interpretace"}
-80 % hodnot je pod `r round(e35, 4)`.
+20 % hodnot je nad `r round(e35, 4)`.
 :::
 
 ### 3E6
@@ -212,6 +212,11 @@ m320 <- rethinking::HPDI(samples0, prob = 0.9)
 m320
 ```
 
+:::{.callout-tip title="interpretace - useknutý prior"}
+90 % hodnot, které jsou nejvíce pravděpodobné, jsou mezi
+`r round(m320[1], 4)` a `r round(m320[2], 4)`.
+:::
+
 Výpočet `P(W=8)` (3M3).
 
 ```{r }
@@ -227,6 +232,11 @@ m330 <- mean(predictions0 == 8)
 m330
 ```
 
+:::{.callout-tip title="interpretace - useknutý prior"}
+Pravděpodobnost toho, že mi padne 8x voda z 15ti hodů je 
+`r round(m330, 4)`.
+:::
+
 Výpočet `P(W=6)` (3M4).
 
 ```{r }
@@ -241,6 +251,11 @@ ggplot() +
 m340 <- mean(predictions09 == 6)
 m340
 ```
+
+:::{.callout-tip title="interpretace - useknutý prior"}
+Pravděpodobnost toho, že mi padne 6x voda z 9ti hodů je 
+`r round(m340, 4)`.
+:::
 
 Porovnání:
 
@@ -271,7 +286,7 @@ Předpokládáme, že skutečná hodnota je $\pi = 0.7$.
 
 ```{r }
 compute_pi <- function(grid, prior, size = 1, p = 0.7) {
-  # Simulace experiment
+  # Simulace experimentu - kolikrát mi ze 'size' pokusů padla voda
   experiment <- rbinom(1, size = size, prob = p)
   # Věrohodnost dat
   likelihood <- dbinom(experiment, size = size, prob = grid)
@@ -292,9 +307,10 @@ N <- 2500
 k <- 100
 average_width <- rep(NA, time = N)
 # Pouze na výběr, kde je výsledek kvůli času
-for (i in seq(from = 2150, to = 2250)) {
+for (i in seq(from = 2200, to = 2225)) {
   set.seed(i)
   ests <- numeric(k)
+  # Průměrná šířka pro dané i
   for (j in seq_len(k)) {
     ests[j] <- compute_pi(grid, prior, size = i)
   }
@@ -312,14 +328,14 @@ u vzorku o velikosti 2 200.
 
 ```{r }
 awn <- average_width
-names(awn) <- seq_along(awn)
+names(average_width) <- seq_along(average_width)
 awn <- awn[!is.na(awn)]
 ggplot() +
   geom_line(aes(x = as.integer(names(awn)), y = awn)) +
   geom_hline(aes(yintercept = 0.05, color = "red")) +
   labs(
     y = "Průměrná šířka",
-    x = "Velikost populace"
+    x = "Počet hodů"
   )
 ```
 
@@ -338,7 +354,7 @@ ls()
 
 ```{r }
 boys <- c(birth1, birth2)
-grid <- seq(from = 0, to = 1, length.out = 1e3)
+grid <- seq(from = 0, to = 1, length.out = 1e4)
 
 prior <- rep(1, length = length(boys))
 likelihood <- dbinom(x = sum(boys), size = length(boys), prob = grid)
@@ -386,7 +402,7 @@ h32
 set.seed(333)
 sims <- rbinom(1e4, size = 200, prob = samples)
 plot(density(sims))
-abline(v = 111)
+abline(v = sum(boys))
 ```
 
 :::{.callout-tip title="interpretace"}
@@ -405,26 +421,30 @@ abline(v = sum(birth1))
 
 :::{.callout-tip title="interpretace"}
 Při popisu pouze prvních porodů, kdy se narodilo 51 kluků, už posteriorní
-rozdělení na data sedí hůře. Pořád ale výsledky dávají smysl.
+rozdělení na data sedí hůře. Pořád ale výsledky dávají smysl. Důvodem může být
+závislost mezi prvním a druhým porodem.
 :::
 
 ### 3H5
+
+Použití posteriorního rozdělení z předchozího příkladu na případ, kdy se
+narodil kluk po holce. Pokud jsou porody nezávislé, měla by 
+pozorovaná data odpovídat posteriornímu rozdělení.
 
 ```{r }
 # Počet dívek v prvním porodu
 girls1 <- sum(birth1 == 0)
 # Počet chlapců, o se narodili po holce
-boys2 <- birth2[which(birth1 == 0)]
-boys2 <- sum(boys2 == 1)
+boys2 <- sum(birth2[which(birth1 == 0)])
 
 # Simulace
 set.seed(335)
+# Použití posteriorního rozdělení pro p(kluk) na druhé porody.
 boys2sim <- rbinom(1e4, size = girls1, prob = samples)
-ggplot() +
-  geom_histogram(aes(x = boys2sim)) +
-  geom_vline(aes(xintercept = boys2))
+plot(density(boys2sim))
+abline(v = sum(boys2))
 ```
 
 :::{.callout-tip title="interpretace"}
-Pozorovaný počet chlapců, co se narodili jako druzí, už popsané posteriorním rozdělením dobře není. To může znamenat, že první a druhý porod není nezávislý.
+Pozorovaný počet chlapců, co se narodili jako druzí, už popsané posteriorním rozdělením dobře není. To může znamenat, že první a druhý porod je závislý.
 :::

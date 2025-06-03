@@ -67,11 +67,8 @@ Správně je 1 a 4.
 
 A <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
-  prior = (1 - 0)/1,
-  # Binomial likelihood
+  prior = 1,
   likelihood = dbinom(3, 3, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |> 
   ggplot() +
@@ -80,16 +77,13 @@ A <- tibble(
   labs(
     title = "Případ: W, W, W",
     subtitle = "Proporce vody W",
-    x = "p", y = "P(p | x)"
+    x = "p", y = "P(p | data)"
   )
 
 B <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
-  prior = (1 - 0)/1,
-  # Binomial likelihood
+  prior = 1,
   likelihood = dbinom(3, 4, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |> 
   ggplot() +
@@ -98,25 +92,22 @@ B <- tibble(
   labs(
     title = "Případ: W, W, W, L",
     subtitle = "Proporce vody W",
-    x = "p", y = "P(p | x)"
+    x = "p", y = "P(p | data)"
   )
 
 C <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
-  prior = (1 - 0)/1,
-  # Binomial likelihood
+  prior = 1,
   likelihood = dbinom(5, 7, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |>  
   ggplot() +
   geom_line(aes(x = p, y = posterior)) +
   theme_bw() +
   labs(
-    title = "Případ: W, W, W, L",
+    title = "Případ: L, W, W, L, W, W, W",
     subtitle = "Proporce vody W",
-    x = "p", y = "P(W | x)"
+    x = "p", y = "P(p | data)"
   )
 
 A / B / C
@@ -126,13 +117,11 @@ A / B / C
 
 ```{r }
 #| fig.height: 9
+#| 
 A <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
   prior = ifelse(p < 0.5, 0, p),
-  # Binomial likelihood
   likelihood = dbinom(3, 3, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |> 
   ggplot() +
@@ -146,11 +135,8 @@ A <- tibble(
   
 B <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
   prior = ifelse(p < 0.5, 0, p),
-  # Binomial likelihood
   likelihood = dbinom(3, 4, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |> 
   ggplot() +
@@ -164,11 +150,8 @@ B <- tibble(
   
 C <- tibble(
   p = seq(0, 1, by = 0.001),
-  # Uniform prior
   prior = ifelse(p < 0.5, 0, p),
-  # Binomial likelihood
   likelihood = dbinom(5, 7, prob = p),
-  # Posterior
   posterior = prior * likelihood / sum(likelihood)
 ) |>  
   ggplot() +
@@ -326,25 +309,30 @@ tibble(
 
 ```{r }
 tibble(
-  Front1 = c(
-    rep("W", times = 2),
-    rep("W", times = 3),
-    rep("W", times = 3)
+  Case = c(
+    rep("Case 1", times = 3),
+    rep("Case 2", times = 3),
+    rep("Case 3", times = 2)
   ),
-  Back1  = c(
-    rep("B", times = 2),
-    rep("W", times = 3),
-    rep("W", times = 3)
+  Front1 = c(
+    rep("B", times = 3),
+    rep("B", times = 3),
+    rep("B", times = 2)
+  ),
+  Back1 = c(
+    rep("B", times = 3),
+    rep("B", times = 3),
+    rep("2", times = 2)
   ),
   Front2 = c(
-    rep("B", times = 2),
-    rep("B", times = 3),
-    rep("B", times = 3)
+    rep("W", times = 3),
+    rep("W", times = 3),
+    rep("W", times = 2)
   ),
-  Back2 = c(
-    rep("B", times = 2),
-    c("W", rep("B", times = 2)),
-    c("W", rep("B", times = 2))
+  Back2  = c(
+    c("W", "B", "W"),
+    c("W", "B", "W"),
+    c("W", "W")
   )
 ) |> 
   gt() |> 
@@ -386,25 +374,6 @@ tibble(
 ## Těžké úkoly
 
 ### 2H1
-
-#### Počítání
-
-```{r }
-tibble(
-  Specimen = c("A (T/S)", "A (T/T)", "B (T/S)", "B (T/T"),
-  Likelihood = c(0.1*0.9, 0.1^2, 0.2*0.8, 0.2^2),
-  Prior = c(1, 1, 1, 1),
-  UnnormalizedPosterior = Likelihood * Prior,
-  Posterior = UnnormalizedPosterior/sum(UnnormalizedPosterior)
-) |> 
-  gt() |> 
-  tab_style(
-    location = cells_body(rows = c(2, 4)),
-    style = cell_fill(color = "grey80")
-  )
-```
-
-#### Bayesova tabulka
 
 Jaká je pravděpodobnost, že se narodí dvojčata po dvojčatech?
 
@@ -467,7 +436,7 @@ $$
 Když nemáme žádnou informaci o porodech a spoléháme pouze na test.
 
 $$
-P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T|S_A)} = 
+P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T_A)} = 
 \frac{{1\over2}{8\over10}}{
   {1\over2}{8\over10} + {1\over2}{35\over100}
 } = 
@@ -479,10 +448,10 @@ $$
 
 Dostali jsme novou informaci o narození dvojčat a poté jedné pandy. Výpočet bude
 identický, akorát lze použít předchozí informace o a aktualizovat pravděpodobnost 
-pandy typu A za předpoklady $P(S_A|\{T, S\}) = 9/25$.
+pandy typu A za předpoklady $P(S_A|\{T, S\}) = 9/25$z předchozího příkladu.
 
 $$
-P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T|S_A)} = 
+P(S_A | T_A) = \frac{P(S_A)P(T_A|S_A)}{P(T)} = 
 \frac{{9\over25}{8\over10}}{
   {9\over25}{8\over10} + {16\over25}{35\over100}
 } = 

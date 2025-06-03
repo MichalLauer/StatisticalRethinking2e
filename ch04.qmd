@@ -2,7 +2,6 @@
 
 > Chapter 4: Geocentric models
 
-
 ```{r }
 library(ggplot2)
 library(latex2exp)
@@ -11,6 +10,7 @@ library(tibble)
 library(gt)
 library(splines)
 library(dplyr)
+library(rethinking)
 ```
 
 ## Lehké úkoly
@@ -29,19 +29,25 @@ Jsou tam pouze dva parametry, $\mu$ a $\sigma$.
 
 ### 4E3
 
+Čitatel (pokud předpokládáme nezávislost $\mu$, $\sigma$:
+
+$$
+P(\mu, \sigma, y) =
+P(y | \mu, \sigma)P(\mu, \sigma) = 
+P(y | \mu, \sigma)P(\mu)P(\sigma)
+$$
+
+Bayesův vzorec:
+
 $$
 P(\mu,\sigma|y) = \frac{
-  P(\mu, \sigma)P(y | \mu, \sigma)
+  P(y | \mu, \sigma)P(\mu)P(\sigma)
 }{
-  P(y)
+  \int\int P(y | \mu, \sigma)P(\mu)P(\sigma) d\sigma d\mu
 } = \frac{
-  P(\mu)P(\sigma)P(y | \mu, \sigma)
+  N(y|\mu, \sigma)N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1)
 }{
-  \int\int P(\mu)P(\sigma)P(y | \mu, \sigma) d\sigma d\mu
-} = \frac{
-  N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1)N(y|\mu, \sigma)
-}{
-  \int\int N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1)N(y|\mu, \sigma) d\sigma d\mu
+  \int\int N(y|\mu, \sigma)N(\mu|\mu=0,\sigma=10)\text{Exp}(\sigma|\lambda=1) d\sigma d\mu
 }
 $$
 
@@ -102,19 +108,19 @@ g3 + g1 / g2
 
 ```{r }
 m42 <- alist(
+  # Likelihood
+  y ~ dnorm(mean = mu, sd = sigma),
   # Prior
   mu ~ dnorm(mean = 0, sd = 10),
-  sigma ~ dexp(rate = 1),
-  # Likelihood
-  y ~ dnorm(mean = mu, sd = sigma)
+  sigma ~ dexp(rate = 1)
 )
 ```
 
 ### 4M3
 
-$y \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost dat
+$y_i \sim \text{Normal}(\mu_i, \sigma)$ - Věrohodnost dat
 
-$\mu = \alpha + \beta x$ - Lineární model
+$\mu_i = \alpha + \beta x_i$ - Lineární model
 
 $\alpha \sim \text{Normal}(0, 10)$ - Apriorní rozdělení
 
@@ -129,11 +135,11 @@ jsou nejspíše už málo relevantní, ale na ukázku postačující. Modelové 
 bude předpokládat chlapce měřené v prvních třech letech, tedy `11-12`, `12-13` a
 `13-14`.
 
-$y \sim \text{Normal}(\mu, \sigma)$ - Věrohodnost dat
+$y_i \sim \text{Normal}(\mu_i, \sigma)$ - Věrohodnost dat
 
 :::{.callout-tip title="Odůvodnění"}
 Výška je přirozený proces a lze si ho představit jako součet přírůstků od
-narození. Proto je rozumné předpokládat, že bude normálně rozdělená.
+narození. Proto je rozumné předpokládat, že bude normálně rozdělena.
 :::
 
 $\mu = \alpha + \beta (x - \min x)$ - Vycentrovaný lineární model
@@ -142,7 +148,8 @@ $\mu = \alpha + \beta (x - \min x)$ - Vycentrovaný lineární model
 Střední hodnota výšky ($\mu$) lze popsat lineárním vztahem mezi výškou ($y$) a
 rokem ($x$) měření. Roky jsou vycentrované ($x - \min x$) tak, aby $\alpha$
 představovala průměrnou výšku v prvním roce. Přírůstek s každým rokem je
-popsán parametrem $\beta$.
+popsán parametrem $\beta$. Ideální by zde nejspíš byly ordinální proměnné,
+ale to ještě neumíme :).
 :::
 
 $\alpha \sim \text{Normal}(143, 10)$ - Apriorní rozdělení
@@ -209,7 +216,7 @@ m4.3 <- alist(
 )
 
 set.seed(4271)
-m471 <- rethinking::quap(
+m471 <- quap(
   flist = m4.3,
   data = d2
 )
@@ -227,7 +234,7 @@ m4.3b <- alist(
 )
 
 set.seed(4272)
-m472 <- rethinking::quap(
+m472 <- quap(
   flist = m4.3b,
   data = d2
 )
@@ -237,28 +244,34 @@ Porovnání posteriorních rozdělení:
 
 ```{r }
 set.seed(4711)
-postA <- rethinking::extract.samples(m471)
+postA <- extract.samples(m471)
 set.seed(4722)
-postB <- rethinking::extract.samples(m472)
+postB <- extract.samples(m472)
 
-plot_post <- function(x, parameter) {
+plot_post <- function(x, parameter, center, type) {
+  l <- list(
+    "a" = c(105, 160),
+    "b" = c(0.7, 1.1),
+    "g" = c(4, 6)
+  )
+  
   ggplot() +
-    geom_density(aes(x = x)) +
+    geom_density(aes(x = x))  + 
+    scale_x_continuous(limit = l[[type]]) +
     theme_bw() +
     labs(x = TeX(parameter),
-         y = TeX(paste0("P(", parameter, ")")))
+         y = TeX(paste0("P(", parameter, ")", ifelse(center, " - center", "- orig"))))
 }
 
 (
-  plot_post(postA$a, r"($\alpha$)") +
-  plot_post(postA$b, r"($\beta$)") +
-  plot_post(postA$sigma, r"($\sigma$)")
-  
+  plot_post(postA$a, r"($\alpha$)", TRUE, "a") +
+  plot_post(postA$b, r"($\beta$)", TRUE, "b") +
+  plot_post(postA$sigma, r"($\sigma$)", TRUE, "g")
 ) /
 (
-  plot_post(postB$a, r"($\alpha$)") +
-  plot_post(postB$b, r"($\beta$)") +
-  plot_post(postB$sigma, r"($\sigma$)")
+  plot_post(postB$a, r"($\alpha$)", FALSE, "a") +
+  plot_post(postB$b, r"($\beta$)", FALSE, "b") +
+  plot_post(postB$sigma, r"($\sigma$)", FALSE, "g")
 )
 ```
 
@@ -271,9 +284,6 @@ Pro parametr $\alpha$ je interpretace odlišná. V modelech v prvním řádku
 (vycentrovaná váha) parametr reprezentuje průměrnou výšku pro průměrnou váhu,
 zatímco v druhém řádku (nevycentrovaná váha) reprezentuje průměrnou výšku pro
 nulovou váhu (což prakticky nedává smysl).
-
-Z grafu to vypadá, že je parametr $\sigma$ pro necentrovaný model nepatrně
-vyšší.
 :::
 
 ```{r }
@@ -307,22 +317,25 @@ větší.
 
 
 ```{r }
-num_knots <- 15
+num_knots <- 20
+dg <- 3
+
 data(cherry_blossoms, package = "rethinking")
 d3 <- cherry_blossoms[complete.cases(cherry_blossoms$doy), ]
-knot_list <- quantile(d3$year, probs = seq(0, 1, length.out = num_knots))
+knot_list <- quantile(d3$year, probs = seq(0, 1, length.out = num_knots + 2))
+knot_list <- knot_list[-c(1, num_knots + 2)]
 B <- bs(d3$year,
-        knots = knot_list[-c(1, knot_list)],
-        degree = 3,
-        intercept = TRUE)
+        knots = knot_list,
+        degree = dg,
+        intercept = FALSE)
 
 set.seed(4271)
-m47 <- rethinking::quap(
+m47 <- quap(
   flist = alist(
     D ~ dnorm(mu, sigma),
     mu <- a + B %*% w,
     a ~ dnorm(100, 10),
-    w ~ dnorm(0, 10),
+    w ~ dnorm(0, 5),
     sigma ~ dexp(1)
   ),
   data = list(
@@ -334,22 +347,269 @@ m47 <- rethinking::quap(
   )
 )
 
-set.seed(4272)
-m47s <- rethinking::extract.samples(m47)
+set.seed(88)
+post <- link(m47)
+pred <- apply(post, 2, mean)
+pi <- apply(post, 2, PI)
 
-# bind_cols(
-#   a = m47s$a,
-#   as_tibble(m47s$w, .name_repair = \(x) paste0("b", seq_along(x))),
-#   sigma = m47s$sigma
-# ) |> 
-#   mutate(mu = a  + )
+plot(doy ~ year, data = d3, col = col.alpha("black", 0.4))
+lines(d3$year, pred, col = "red", lwd = 3)
+lines(d3$year, pi[1,], col = "blue", lwd = 2, lty = 2)
+lines(d3$year, pi[2,], col = "blue", lwd = 2, lty = 2)
+abline(v = knot_list, lty = 3, col = "darkred", lwd = 2)
+title(paste0("Number of nots: ", num_knots,
+             ", degrees:", dg, ", params: ", ncol(B)))
+```
 
-tibble(
-  a = m47s$a,
-  bw = B %*% m47s$w,
-  sigma = m47s$sigma
-) |> 
-  mutate(mu = a  + )
+## Těžké úkoly
+
+### 4H1
+
+Normalizace dat a uložení hyperparametrů pro predikci.
+
+```{r }
+hp <- list(
+  mean_h = mean(Howell1$height),
+  mean_w = mean(Howell1$weight),
+  sd_h   = sd(Howell1$height),
+  sd_w   = sd(Howell1$weight)
+)
+
+h41d <- Howell1
+h41d$H <- (h41d$height - hp$mean_h) / hp$sd_h
+h41d$W <- (h41d$weight - hp$mean_w) / hp$sd_w
+h41d <- h41d[order(h41d$W), ]
+```
+
+Graf váhy a výšky.
+
+```{r }
+plot(H ~ W, data = h41d)
+```
+
+Vypadá to, že by mohla být dobrý volba lineární spline regrese s knotem okolo 
+-1.
+
+```{r }
+h41B <- bs(x = h41d$W, knots = -1, degree = 1)
+h41m <- quap(
+  flist = alist(
+    H ~ dnorm(mu, sigma),
+    mu <- a + B %*% w,
+    a ~ dnorm(0, 10),
+    w ~ dnorm(0, 10),
+    sigma ~ dexp(1)
+  ),
+  data = list(
+    H = h41d$H,
+    B = h41B
+  ),
+  start = list(
+    w = rep(0, length = ncol(h41B))
+  )
+)
+
+set.seed(99)
+post <- sim(h41m)
+post <- apply(post, 2, \(x) x * hp$sd_h + hp$mean_h) # Normalizace
+pred <- apply(post, 2, mean)
+pi <- apply(post, 2, PI)
+
+plot(height ~ weight, data = h41d, col = col.alpha("black", 0.4))
+lines(h41d$weight, pred, col = "red", lwd = 1)
+lines(h41d$weight, pi[1,], col = "blue", lwd = 2, lty = 2)
+lines(h41d$weight, pi[2,], col = "blue", lwd = 2, lty = 2)
+abline(v = -1 * hp$sd_w + hp$mean_w, lty = 3, col = "darkred", lwd = 2)
+title("Regrese na čistých datech.")
+```
+
+Regrese na data sedí pěkně. Apriorní rozdělení jsou široká. Predikce nových 
+hodnot na grafu:
+
+```{r warning=FALSE}
+# h41p <- tibble(
+#   Individual = 1:5,
+#   weight = c(46.95, 43.72, 64.78, 32.59, 54.63),
+#   W = (weight - hp$mean_w ) / hp$sd_w
+# )
+# 
+# set.seed(965)
+# post2 <- sim(h41m, data = data.frame(B = predict(h41B, h41p$W)))
+# post2 <- apply(post2, 2, \(x) x * hp$sd_h + hp$mean_h) # Normalizace
+# pred2 <- apply(post2, 2, mean)
+# pi2 <- apply(post2, 2, PI)
+# 
+# plot(height ~ weight, data = h41d, col = col.alpha("black", 0.4))
+# points(h41p$weight, pred2, col = "darkgreen", lwd = 2, pch = 8)
+# points(h41p$weight, pi2[1,], col = "darkblue", lwd = 2, lty = 2)
+# points(h41p$weight, pi2[2,], col = "darkblue", lwd = 2, lty = 2)
+# title("Predikce")
+```
+
+```{r }
+# h41p |> 
+#   select(-W) |> 
+#   mutate(
+#     Predikce = pred2,
+#     "5.5 %"  = pi2[1, ],
+#     "94.5 %" = pi2[2, ]
+#   ) |> 
+#   gt()
+```
+
+### 4H2
+
+Filtrace dat.
+
+```{r }
+h42d <- filter(Howell1, age < 18)
+nrow(h42d)
+```
+
+Lineární regrese `height ~ weight`.
+
+```{r }
+# Požadované parametry
+h42mean <- 5
+h42sd <- 10
+# Konvertování parametrů
+h42logmean <- log(h42mean^2 / sqrt(h42sd^2 + h42mean^2))
+h42logsd <- sqrt(log(1 + (h42sd^2 / h42mean^2)))
+
+h42m <- quap(
+  flist = alist(
+    height ~ dnorm(mu, sigma),
+    mu <- alpha + beta * weight,
+    alpha ~ dnorm(170, 20),
+    beta ~ dlnorm(h42logmean, h42logsd),
+    sigma ~ dexp(1)
+  ),
+  data = h42d
+)
+
+summary(h42m)
+```
+
+:::{.callout-tip title="interpretace"}
+V průměru očekáváme, že s 10 kg navíc se zvýší výška o 27 cm.
+:::
+
+```{r }
+set.seed(22)
+pred <- sim(h42m)
+h42predci <- apply(pred, 2, PI)
+h42expected <- link(h42m)
+h42muci <- apply(h42expected, 2, PI)
+
+ggplot(h42d, aes(x = weight, y = height)) +
+  geom_ribbon(aes(ymin = h42predci[1, ], ymax = h42predci[2, ]),
+              fill = "lightblue") +
+  geom_ribbon(aes(ymin = h42muci[1, ], ymax = h42muci[2, ]),
+              fill = "darkblue") +
+  geom_line(aes(y = h42mu), color = "blue", linewidth = 1) +
+  geom_point() +
+  theme_bw()
+```
+
+:::{.callout-tip title="interpretace"}
+Model předpokládá lineární vztah, což ale neodpovídá datům. Model v nízkých a vysokých hodnotách nadhodnocuje zatímco v průměrných podhodnocuje. Bylo by 
+vhodnější buď předzpracovat proměnnou `weight` a nebo změnit vztah ve funkce
+a přidat polynomy.
+:::
+
+### 4H3
+
+Úprava dat.
+
+```{r }
+h43d <- mutate(Howell1, lweight = log(weight))
+dim(h43d)
+```
+
+Model.
+
+```{r }
+h43m <- quap(
+  flist = alist(
+    height ~ dnorm(mu, sigma),
+    mu <- alpha + beta * lweight,
+    alpha ~ dnorm(170, 20),
+    beta ~ dnorm(50, 100),
+    sigma ~ dexp(5)
+  ),
+  data = h43d
+)
+
+summary(h43m)
+```
+
+:::{.callout-tip title="interpretace"}
+V průměru očekáváme, že s 10% nárůstem váhy se zvýší výška o
+$46,82\ln(110/100)=4,46 cm$
+:::
+
+```{r }
+set.seed(22)
+h43pred <- sim(h43m)
+h43predci <- apply(h43pred, 2, PI)
+h43expected <- link(h43m)
+h43mu <- colMeans(h43expected)
+h43muci <- apply(h43expected, 2, PI)
+
+ggplot(h43d, aes(x = weight, y = height)) +
+  geom_ribbon(aes(ymin = h43predci[1, ], ymax = h43predci[2, ]),
+              fill = "lightblue") +
+  geom_ribbon(aes(ymin = h43muci[1, ], ymax = h43muci[2, ]),
+              fill = "darkblue") +
+  geom_line(aes(y = h43mu), color = "blue", linewidth = 1) +
+  geom_point() +
+  theme_bw()
+```
+
+:::{.callout-tip title="interpretace"}
+Tenhle model je mnohem lepší a sedí jak na nezletilé, tak na dospělé
+jedince.
+:::
+
+### 4H4
+
+Data.
+
+```{r }
+h44d <- 
+  Howell1 |> 
+  mutate(
+    weight_s = standardize(weight),
+    weight_s2 = weight_s^2
+  )
+```
+
+Model z kapitoly.
+
+```{r }
+h44m <- quap(
+  flist = alist(
+    height ~ dnorm(mu, sigma),
+    mu <- a + b1 * weight_s + b2 * weight_s2,
+    a ~ dnorm(178, 20),
+    b1 ~ dlnorm(0, 1),
+    b2 ~ dnorm(0, 1),
+    sigma ~ dunif(0, 50)
+  ),
+  data = h44d
+)
+```
+
+Apriorní model.
+
+```{r }
+set.seed(78)
+h44p <- extract.prior(h44m)
+h44s <- link(h44m, post = h44p)
+
+ggplot(Howell1, aes(x = weight, y = height)) +
+  geom_point()
+  geom_point()
 ```
 
 
